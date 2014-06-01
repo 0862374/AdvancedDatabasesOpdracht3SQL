@@ -1,54 +1,74 @@
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class OpdrachtVierTweeEen {
+	List<Long> duur = new ArrayList<Long>();
+
 	public OpdrachtVierTweeEen() {
 		// TODO Auto-generated method stub
 		// LET OP DEZE CODE IS MET DE LOSSE POLS GETYPT IN NOTEPAD - LONG LIFE
 		// WORK WITH NO ECLIPSE OR NOTEPAD++ ;)
 		// IN ELKE REGEL ZAL WEL EEN FOUTJE ZITTEN DENK IK
 
-		int max = 30;
-		Database db = new Database();
+		int max = 600;
+		Database db = null;
 		long duurInMS = 0;
 
 		for (int i = 0; i < max; i++) {
 			try {
-
+				db = new Database();
 				db.conn.setAutoCommit(false);
-				db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+				db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
 				long beginTijd = System.currentTimeMillis();
 
-				String insertStudentQuery = "INSERT INTO studenten (studentnummer, voornaam, achternaam, geboortedatum, geslacht, straat) VALUES ("
-						+ getRandomNumber(1000000, 9999999)
+				int studnr = getRandomNumber(1000000, 9999999);
+
+				String insertStudentQuery = "INSERT INTO studenten (studentnummer, voornaam, achternaam, geboortedatum, geslacht, straat, postcode, woonplaats, telefoonnummer) VALUES ("
+						+ studnr
 						+ ","
 						+ "'Student"
 						+ i
 						+ "',"
 						+ "'Achter"
 						+ i
-						+ "', "
-						+ getRandomDate() + "," + getRandomGeslacht() + ", 'straatje "+i+"');";
-				db.stmt.executeQuery(insertStudentQuery);
+						+ "', '"
+						+ getRandomDate()
+						+ "', '"
+						+ getRandomGeslacht()
+						+ "', 'straatje "
+						+ i
+						+ "', '"
+						+ getRandomNumber(1000, 9999)
+						+ " AA', 'plaatsje" + i + "', '0" + getRandomNumber(111111111, 999999999) + "');";
+
+				db.stmt.executeUpdate(insertStudentQuery);
 
 				Random rn = new Random();
 
 				switch (rn.nextInt(30)) {
 					case 0:
-						String insertKlasQuery = "INSERT INTO [KLAS] (velden) VALUES (waardes);";
-						db.stmt.executeQuery(insertKlasQuery);
+						String insertKlasQuery = "INSERT INTO klassen (klasnaam, startdatum, einddatum) VALUES ('"
+								+ UUID.randomUUID().toString() + "', '" + getRandomDate() + "', '" + getRandomDate()
+								+ "');";
+						db.stmt.executeUpdate(insertKlasQuery);
 						break;
 				}
 
-				String selectKlasQuery = "SELECT klas_id FROM TABEL;";
+				String selectKlasQuery = "SELECT count(*) AS aantalrecords, klassen.klasid FROM klassen GROUP BY klasid;";
 				ResultSet rs = db.stmt.executeQuery(selectKlasQuery);
 
-				String insertStudentKlas = "INSERT INTO [STUDENTKLAS] (velden) VALUES (waardes "
-						+ (rn.nextInt(rs.getFetchSize()) + 1) + ");";
-				db.stmt.executeQuery(insertStudentKlas);
+				rs.next();
+				String insertStudentKlas = "INSERT INTO studentenklassen (klasid, studentnummer) VALUES ('"
+						+ (getRandomNumber(1, rs.getInt("aantalrecords"))) + "', '" + studnr + "');";
+
+				System.out.println(insertStudentKlas);
+				db.stmt.executeUpdate(insertStudentKlas);
 
 				long eindTijd = System.currentTimeMillis();
 
@@ -71,8 +91,8 @@ public class OpdrachtVierTweeEen {
 
 				db.conn.commit();
 
-				duurInMS = eindTijd - beginTijd;
-
+				// duurInMS = eindTijd - beginTijd;
+				duur.add((eindTijd - beginTijd));
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
@@ -96,9 +116,10 @@ public class OpdrachtVierTweeEen {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				System.out.println(duurInMS);
+
 			}
 		}
+		System.out.println("Average time: " + getAverage() + "MS");
 	}
 
 	public int getRandomNumber(int min, int max) {
@@ -107,10 +128,27 @@ public class OpdrachtVierTweeEen {
 
 	public String getRandomDate() {
 		Random rn = new Random();
+		String day;
+		String month;
 		String date;
 
-		date = Integer.toString(rn.nextInt(31)) + "-" + Integer.toString(rn.nextInt(12)) + "-"
-				+ getRandomNumber(1980, 2005);
+		day = Integer.toString(rn.nextInt(31));
+		month = Integer.toString(rn.nextInt(12));
+
+		if (day.length() < 2) {
+			if (day.equalsIgnoreCase("0")) {
+				day = "1";
+			}
+			day = "0" + day;
+		}
+		if (month.length() < 2) {
+			if (month.equalsIgnoreCase("0")) {
+				month = "1";
+			}
+			month = "0" + month;
+		}
+
+		date = getRandomNumber(1980, 2005) + "-" + month + "-" + day;
 
 		return date;
 	}
@@ -133,4 +171,11 @@ public class OpdrachtVierTweeEen {
 
 	}
 
+	public long getAverage() {
+		long sum = 0;
+		for (int i = 0; i < duur.size(); i++) {
+			sum += duur.get(i).longValue();
+		}
+		return sum / duur.size();
+	}
 }
