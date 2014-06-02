@@ -1,7 +1,10 @@
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -17,7 +20,6 @@ public class OpdrachtVierTweeEen {
 
 		int max = 600;
 		Database db = null;
-		long duurInMS = 0;
 
 		for (int i = 0; i < max; i++) {
 			try {
@@ -53,9 +55,12 @@ public class OpdrachtVierTweeEen {
 
 				switch (rn.nextInt(30)) {
 					case 0:
+						String dateone = getRandomDate();
+						String datetwo = getRandomDate();
+
 						String insertKlasQuery = "INSERT INTO klassen (klasnaam, startdatum, einddatum) VALUES ('"
-								+ UUID.randomUUID().toString() + "', '" + getRandomDate() + "', '" + getRandomDate()
-								+ "');";
+								+ UUID.randomUUID().toString() + "', '" + getLowOrHighDate(dateone, datetwo, false)
+								+ "', '" + getLowOrHighDate(dateone, datetwo, true) + "');";
 						db.stmt.executeUpdate(insertKlasQuery);
 						break;
 				}
@@ -74,15 +79,27 @@ public class OpdrachtVierTweeEen {
 
 				switch (rn.nextInt(30)) {
 					case 0:
-						String insertModuleQuery = "INSERT INTO [MODULE] (velden) VALUES (waardes);";
-						db.stmt.executeQuery(insertModuleQuery);
+						String dateone = getRandomDate();
+						String datetwo = getRandomDate();
+
+						String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('module"
+								+ i
+								+ "', 'Advanced Database "
+								+ i
+								+ "', 'ADVDOC', '"
+								+ getLowOrHighDate(dateone, datetwo, false)
+								+ "', '"
+								+ getLowOrHighDate(dateone, datetwo, true) + "');";
+						System.out.println(insertModuleQuery);
+						db.stmt.executeUpdate(insertModuleQuery);
 
 						for (int j = 0; j < rs.getFetchSize(); j++) {
-							switch (rn.nextInt(15)) {
-								case 0:
-									String insertModuleKlasQuery = "INSERT INTO [MODULEKLAS] (velden) VALUES (waardes);";
-									db.stmt.executeQuery(insertModuleKlasQuery);
-									break;
+							if (rn.nextInt(100) <= 15) {
+
+								String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('module"
+										+ i + "', " + j + ");";
+								db.stmt.executeUpdate(insertModuleKlasQuery);
+
 							}
 						}
 
@@ -132,7 +149,7 @@ public class OpdrachtVierTweeEen {
 		String month;
 		String date;
 
-		day = Integer.toString(rn.nextInt(31));
+		day = Integer.toString(rn.nextInt(28));
 		month = Integer.toString(rn.nextInt(12));
 
 		if (day.length() < 2) {
@@ -177,5 +194,38 @@ public class OpdrachtVierTweeEen {
 			sum += duur.get(i).longValue();
 		}
 		return sum / duur.size();
+	}
+
+	public String getLowOrHighDate(String dateone, String datetwo, boolean highestDate) {
+		try {
+
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			Date date1 = sdf.parse(dateone);
+			Date date2 = sdf.parse(datetwo);
+
+			if (date1.compareTo(date2) > 0) {
+				if (!highestDate) {
+					return datetwo;
+				} else {
+					return dateone;
+
+				}
+			} else
+				if (date1.compareTo(date2) < 0) {
+					if (highestDate) {
+						return datetwo;
+					} else {
+						return dateone;
+
+					}
+				} else
+					if (date1.compareTo(date2) == 0) {
+						return dateone;
+					}
+
+		} catch (ParseException ex) {
+			ex.printStackTrace();
+		}
+		return dateone;
 	}
 }
