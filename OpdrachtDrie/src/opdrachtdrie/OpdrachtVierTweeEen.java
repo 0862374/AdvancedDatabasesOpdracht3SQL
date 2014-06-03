@@ -1,6 +1,7 @@
 package opdrachtdrie;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -12,222 +13,264 @@ import java.util.Random;
 import java.util.UUID;
 
 public class OpdrachtVierTweeEen {
-	List<Long> duur = new ArrayList<Long>();
 
-	public OpdrachtVierTweeEen() {
-		// TODO Auto-generated method stub
-		// LET OP DEZE CODE IS MET DE LOSSE POLS GETYPT IN NOTEPAD - LONG LIFE
-		// WORK WITH NO ECLIPSE OR NOTEPAD++ ;)
-		// IN ELKE REGEL ZAL WEL EEN FOUTJE ZITTEN DENK IK
+    // Maak een lijst aan om de gemiddelde duur per iteratie uiteindelijk te berekenen
+    List<Long> duur = new ArrayList<Long>();
 
-		int max = 600;
-		Database db = null;
+    public OpdrachtVierTweeEen() {
 
-		for (int i = 0; i < max; i++) {
-			try {
-				db = new Database();
-				db.conn.setAutoCommit(false);
-				db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+        // aantal iteraties per gebruiker
+        final int max = 600;
 
-				long beginTijd = System.currentTimeMillis();
+        // maak het aantal threads (gebruikers) aan
+        for (int t = 0; t < 3; t++) {
+            Thread thread = new Thread() {
+                public void run() {
+                    // definieer de database variabele
+                    Database db = null;
+                    // loop door elke iteratie heen
+                    for (int i = 0; i < max; i++) {
+                        try {
+                            // maak verbinding met de database
+                            db = new Database();
+                            db.conn.setAutoCommit(false);
+                            db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
-				int studnr = getRandomNumber(1000000, 9999999);
+                            // start de timer
+                            long beginTijd = System.currentTimeMillis();
 
-				String insertStudentQuery = "INSERT INTO studenten (studentnummer, voornaam, achternaam, geboortedatum, geslacht, straat, postcode, woonplaats, telefoonnummer) VALUES ("
-						+ studnr
-						+ ","
-						+ "'Student"
-						+ i
-						+ "',"
-						+ "'Achter"
-						+ i
-						+ "', '"
-						+ getRandomDate()
-						+ "', '"
-						+ getRandomGeslacht()
-						+ "', 'straatje "
-						+ i
-						+ "', '"
-						+ getRandomNumber(1000, 9999)
-						+ " AA', 'plaatsje" + i + "', '0" + getRandomNumber(111111111, 999999999) + "');";
+                            // maak een willekeurig studentnummer aan
+                            int studnr = getRandomNumber(1000000, 9999999);
 
-				db.stmt.executeUpdate(insertStudentQuery);
+                            // voer de nieuwe student in de database in
+                            String insertStudentQuery = "INSERT INTO studenten (studentnummer, voornaam, achternaam, geboortedatum, geslacht, straat, postcode, woonplaats, telefoonnummer) VALUES ("
+                                    + studnr
+                                    + ","
+                                    + "'Student"
+                                    + i
+                                    + "',"
+                                    + "'Achter"
+                                    + i
+                                    + "', '"
+                                    + getRandomDate()
+                                    + "', '"
+                                    + getRandomGeslacht()
+                                    + "', 'straatje "
+                                    + i
+                                    + "', '"
+                                    + getRandomNumber(1000, 9999)
+                                    + " AA', 'plaatsje"
+                                    + i
+                                    + "', '0"
+                                    + getRandomNumber(111111111, 999999999) + "');";
+                            db.stmt.executeUpdate(insertStudentQuery);
 
-				Random rn = new Random();
+                            // definieer een nieuwe willekeurig voor het maken van een klas.
+                            Random rn = new Random();
 
-				switch (rn.nextInt(30)) {
-					case 0:
-						String dateone = getRandomDate();
-						String datetwo = getRandomDate();
+                            // als het volgende willekeurige nummer 10 is, maak dan een nieuwe klas aan.
+                            switch (rn.nextInt(30)) {
+                                case 10:
+                                    String dateone = getRandomDate();
+                                    String datetwo = getRandomDate();
 
-						String insertKlasQuery = "INSERT INTO klassen (klasnaam, startdatum, einddatum) VALUES ('"
-								+ UUID.randomUUID().toString() + "', '" + getLowOrHighDate(dateone, datetwo, false)
-								+ "', '" + getLowOrHighDate(dateone, datetwo, true) + "');";
-						db.stmt.executeUpdate(insertKlasQuery);
-						break;
-				}
+                                    String insertKlasQuery = "INSERT INTO klassen (klasnaam, startdatum, einddatum) VALUES ('"
+                                            + UUID.randomUUID().toString()
+                                            + "', '"
+                                            + getLowOrHighDate(dateone, datetwo, false)
+                                            + "', '"
+                                            + getLowOrHighDate(dateone, datetwo, true) + "');";
+                                    db.stmt.executeUpdate(insertKlasQuery);
+                                    break;
+                            }
 
-				String selectKlasQuery = "SELECT count(*) AS aantalrecords, klassen.klasid FROM klassen GROUP BY klasid;";
-				ResultSet rs = db.stmt.executeQuery(selectKlasQuery);
+                            // haal alle klassen op uit de database
+                            String selectKlasQuery = "SELECT count(*) as total FROM klassen;";
+                            ResultSet rs = db.stmt.executeQuery(selectKlasQuery);
 
-				rs.next();
-				String insertStudentKlas = "INSERT INTO studentenklassen (klasid, studentnummer) VALUES ('"
-						+ (getRandomNumber(1, rs.getInt("aantalrecords"))) + "', '" + studnr + "');";
+                            // kies de enige regel van het aantal klassen.
+                            rs.next();
+                            
+                            // voer de student in een willekeurige klas in.
+                            String insertStudentKlas = "INSERT INTO studentenklassen (klasid, studentnummer) VALUES ('"
+                                    + (getRandomNumber(1, rs.getInt("total"))) + "', '" + studnr + "');";
+                            System.out.println(insertStudentKlas);
+                            db.stmt.executeUpdate(insertStudentKlas);
 
-				System.out.println(insertStudentKlas);
-				db.stmt.executeUpdate(insertStudentKlas);
+                            // stop de timer
+                            long eindTijd = System.currentTimeMillis();
 
-				long eindTijd = System.currentTimeMillis();
+                            // als het volgende willekeurige getal 0 is, maak dan een nieuwe module aan
+                            switch (rn.nextInt(30)) {
+                                case 0:
+                                    String dateone = getRandomDate();
+                                    String datetwo = getRandomDate();
+                                    final String modulecode = "module" + getRandomNumber(i, 1000000);
 
-				switch (rn.nextInt(30)) {
-					case 0:
-						String dateone = getRandomDate();
-						String datetwo = getRandomDate();
+                                    String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('"
+                                            + modulecode
+                                            + "', 'Advanced Database "
+                                            + i
+                                            + "', 'ADVDOC', '"
+                                            + getLowOrHighDate(dateone, datetwo, false)
+                                            + "', '"
+                                            + getLowOrHighDate(dateone, datetwo, true) + "');";
+                                    System.out.println(insertModuleQuery);
+                                    db.stmt.executeUpdate(insertModuleQuery);
 
-						String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('module"
-								+ i
-								+ "', 'Advanced Database "
-								+ i
-								+ "', 'ADVDOC', '"
-								+ getLowOrHighDate(dateone, datetwo, false)
-								+ "', '"
-								+ getLowOrHighDate(dateone, datetwo, true) + "');";
-						System.out.println(insertModuleQuery);
-						db.stmt.executeUpdate(insertModuleQuery);
+                                    // bepaal welke klas er gekoppeld wordt aan een module
+                                    selectKlasQuery = "SELECT * FROM klassen;";
+                                    PreparedStatement preparedStatement = db.conn.prepareStatement(selectKlasQuery);
+                                    rs = preparedStatement.executeQuery();
 
-						for (int j = 0; j < rs.getFetchSize(); j++) {
-							if (rn.nextInt(100) <= 15) {
+                                    while (rs.next()) {
+                                        if (rn.nextInt(100) <= 15) {
 
-								String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('module"
-										+ i + "', " + j + ");";
-								db.stmt.executeUpdate(insertModuleKlasQuery);
+                                            String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('"
+                                                    + modulecode + "', " + rs.getInt("klasid") + ");";
+                                            System.out.println(insertModuleKlasQuery);
+                                            db.stmt.executeUpdate(insertModuleKlasQuery);
 
-							}
-						}
+                                        }
+                                    }
 
-						break;
-				}
+                                    break;
+                            }
+                            
+                            // commit alle queries en acties
+                            db.conn.commit();
+                            
+                            // voeg de tijd toe aan de lijst                            
+                            duur.add((eindTijd - beginTijd));
+                            
+                            // probeer de gebruiker 100 milliseconden te laten wachten
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
 
-				db.conn.commit();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            
+                            // probeer alle acties en queries terug te draaien
+                            try {
+                                db.conn.rollback();
+                            } catch (Exception e1) {
+                                // TODO Auto-generated catch block
+                                e1.printStackTrace();
+                            }
+                        } finally {
+                            // probeer de database connectie te sluiten
+                            try {
+                                db.conn.close();
+                            } catch (SQLException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
 
-				// duurInMS = eindTijd - beginTijd;
-				duur.add((eindTijd - beginTijd));
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+                        }
+                    }
+                    // schrijf de gemiddelde uitvoertijd per iteratie naar de console
+                    System.out.println("Average time: " + getAverage() + "MS");
+                }
+            };
+            thread.start();
+        }
 
-			} catch (SQLException e) {
-				e.printStackTrace();
+    }
+    
+    // methode om een willekeurig nummer te kiezen in een range
+    public int getRandomNumber(int min, int max) {
+        return (int) Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
-				try {
-					db.conn.rollback();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			} finally {
-				try {
-					db.conn.close();
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+    // methode om een willekeurige methode op te halen
+    public String getRandomDate() {
+        Random rn = new Random();
+        String day;
+        String month;
+        String date;
 
-			}
-		}
-		System.out.println("Average time: " + getAverage() + "MS");
-	}
+        day = Integer.toString(rn.nextInt(28));
+        month = Integer.toString(rn.nextInt(12));
 
-	public int getRandomNumber(int min, int max) {
-		return (int) Math.floor(Math.random() * (max - min + 1)) + min;
-	}
+        if (day.length() < 2) {
+            if (day.equalsIgnoreCase("0")) {
+                day = "1";
+            }
+            day = "0" + day;
+        }
+        if (month.length() < 2) {
+            if (month.equalsIgnoreCase("0")) {
+                month = "1";
+            }
+            month = "0" + month;
+        }
 
-	public String getRandomDate() {
-		Random rn = new Random();
-		String day;
-		String month;
-		String date;
+        date = getRandomNumber(1980, 2005) + "-" + month + "-" + day;
 
-		day = Integer.toString(rn.nextInt(28));
-		month = Integer.toString(rn.nextInt(12));
+        return date;
+    }
 
-		if (day.length() < 2) {
-			if (day.equalsIgnoreCase("0")) {
-				day = "1";
-			}
-			day = "0" + day;
-		}
-		if (month.length() < 2) {
-			if (month.equalsIgnoreCase("0")) {
-				month = "1";
-			}
-			month = "0" + month;
-		}
+    // methode om een willekeurig geslacht op te halen
+    public String getRandomGeslacht() {
+        Random rn = new Random();
 
-		date = getRandomNumber(1980, 2005) + "-" + month + "-" + day;
+        switch (rn.nextInt(4)) {
+            case 0:
+                return "man";
+            case 1:
+                return "vrouw";
+            case 2:
+                return "onbepaald";
+            case 3:
+                return "onbekend";
+            default:
+                return "onbekend";
+        }
 
-		return date;
-	}
+    }
 
-	public String getRandomGeslacht() {
-		Random rn = new Random();
+    // methode om de gemiddelde tijd te berekenen
+    public long getAverage() {
+        long sum = 0;
+        for (int i = 0; i < duur.size(); i++) {
+            sum += duur.get(i).longValue();
+        }
+        return sum / duur.size();
+    }
 
-		switch (rn.nextInt(4)) {
-			case 0:
-				return "man";
-			case 1:
-				return "vrouw";
-			case 2:
-				return "onbepaald";
-			case 3:
-				return "onbekend";
-			default:
-				return "onbekend";
-		}
+    // controleer of de startdatum niet na de eind datum ligt.
+    public String getLowOrHighDate(String dateone, String datetwo, boolean highestDate) {
+        try {
 
-	}
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date date1 = sdf.parse(dateone);
+            Date date2 = sdf.parse(datetwo);
 
-	public long getAverage() {
-		long sum = 0;
-		for (int i = 0; i < duur.size(); i++) {
-			sum += duur.get(i).longValue();
-		}
-		return sum / duur.size();
-	}
+            if (date1.compareTo(date2) > 0) {
+                if (!highestDate) {
+                    return datetwo;
+                } else {
+                    return dateone;
 
-	public String getLowOrHighDate(String dateone, String datetwo, boolean highestDate) {
-		try {
+                }
+            } else if (date1.compareTo(date2) < 0) {
+                if (highestDate) {
+                    return datetwo;
+                } else {
+                    return dateone;
 
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			Date date1 = sdf.parse(dateone);
-			Date date2 = sdf.parse(datetwo);
+                }
+            } else if (date1.compareTo(date2) == 0) {
+                return dateone;
+            }
 
-			if (date1.compareTo(date2) > 0) {
-				if (!highestDate) {
-					return datetwo;
-				} else {
-					return dateone;
-
-				}
-			} else
-				if (date1.compareTo(date2) < 0) {
-					if (highestDate) {
-						return datetwo;
-					} else {
-						return dateone;
-
-					}
-				} else
-					if (date1.compareTo(date2) == 0) {
-						return dateone;
-					}
-
-		} catch (ParseException ex) {
-			ex.printStackTrace();
-		}
-		return dateone;
-	}
+        } catch (ParseException ex) {
+            ex.printStackTrace();
+        }
+        return dateone;
+    }
 }
