@@ -1,4 +1,5 @@
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -24,7 +25,7 @@ public class OpdrachtVierTweeEen {
 						try {
 							db = new Database();
 							db.conn.setAutoCommit(false);
-							db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+							db.conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
 							long beginTijd = System.currentTimeMillis();
 
@@ -70,12 +71,12 @@ public class OpdrachtVierTweeEen {
 									break;
 							}
 
-							String selectKlasQuery = "SELECT * FROM klassen GROUP BY klasid;";
+							String selectKlasQuery = "SELECT count(*) as total FROM klassen;";
 							ResultSet rs = db.stmt.executeQuery(selectKlasQuery);
 
 							rs.next();
 							String insertStudentKlas = "INSERT INTO studentenklassen (klasid, studentnummer) VALUES ('"
-									+ (getRandomNumber(1, rs.getInt("klasid"))) + "', '" + studnr + "');";
+									+ (getRandomNumber(1, rs.getInt("total"))) + "', '" + studnr + "');";
 
 							System.out.println(insertStudentKlas);
 							db.stmt.executeUpdate(insertStudentKlas);
@@ -86,9 +87,10 @@ public class OpdrachtVierTweeEen {
 								case 0:
 									String dateone = getRandomDate();
 									String datetwo = getRandomDate();
+									final String modulecode = "module" + getRandomNumber(i, 1000000);
 
-									String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('module"
-											+ getRandomNumber(i, 1000000)
+									String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('"
+											+ modulecode
 											+ "', 'Advanced Database "
 											+ i
 											+ "', 'ADVDOC', '"
@@ -98,14 +100,17 @@ public class OpdrachtVierTweeEen {
 									System.out.println(insertModuleQuery);
 									db.stmt.executeUpdate(insertModuleQuery);
 
-									selectKlasQuery = "SELECT klassen.klasid FROM klassen;";
-									rs = db.stmt.executeQuery(selectKlasQuery);
+									selectKlasQuery = "SELECT * FROM klassen;";
 
-									for (int j = 0; j < rs.getFetchSize(); j++) {
+									PreparedStatement preparedStatement = db.conn.prepareStatement(selectKlasQuery);
+									rs = preparedStatement.executeQuery();
+
+									while (rs.next()) {
 										if (rn.nextInt(100) <= 15) {
 
-											String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('module"
-													+ i + "', " + j + ");";
+											String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('"
+													+ modulecode + "', " + rs.getInt("klasid") + ");";
+											System.out.println(insertModuleKlasQuery);
 											db.stmt.executeUpdate(insertModuleKlasQuery);
 
 										}
@@ -116,7 +121,6 @@ public class OpdrachtVierTweeEen {
 
 							db.conn.commit();
 
-							// duurInMS = eindTijd - beginTijd;
 							duur.add((eindTijd - beginTijd));
 							try {
 								Thread.sleep(100);
@@ -130,7 +134,7 @@ public class OpdrachtVierTweeEen {
 
 							try {
 								db.conn.rollback();
-							} catch (SQLException e1) {
+							} catch (Exception e1) {
 								// TODO Auto-generated catch block
 								e1.printStackTrace();
 							}
@@ -149,7 +153,7 @@ public class OpdrachtVierTweeEen {
 			};
 			thread.start();
 		}
-		
+
 	}
 
 	public int getRandomNumber(int min, int max) {
