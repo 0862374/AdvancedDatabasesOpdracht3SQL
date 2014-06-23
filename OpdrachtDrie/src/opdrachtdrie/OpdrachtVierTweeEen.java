@@ -20,7 +20,7 @@ public class OpdrachtVierTweeEen {
     public OpdrachtVierTweeEen() {
 
         // aantal iteraties per gebruiker
-        final int max = 600;
+        final int MAX = 600;
 
         // maak het aantal threads (gebruikers) aan
         for (int t = 0; t < 3; t++) {
@@ -29,7 +29,7 @@ public class OpdrachtVierTweeEen {
                     // definieer de database variabele
                     Database db = null;
                     // loop door elke iteratie heen
-                    for (int i = 0; i < max; i++) {
+                    for (int i = 0; i < MAX; i++) {
                         try {
                             // maak verbinding met de database
                             db = new Database();
@@ -105,10 +105,10 @@ public class OpdrachtVierTweeEen {
                                 case 0:
                                     String dateone = getRandomDate();
                                     String datetwo = getRandomDate();
-                                    final String modulecode = "module" + getRandomNumber(i, 1000000);
+                                    final String MODULECODE = "module" + getRandomNumber(i, 1000000);
 
                                     String insertModuleQuery = "INSERT INTO modules (modulecode, naam, modulebeheerder, invoerdatum, einddatum) VALUES ('"
-                                            + modulecode
+                                            + MODULECODE
                                             + "', 'Advanced Database "
                                             + i
                                             + "', 'ADVDOC', '"
@@ -127,7 +127,7 @@ public class OpdrachtVierTweeEen {
                                         if (rn.nextInt(100) <= 15) {
 
                                             String insertModuleKlasQuery = "INSERT INTO modulesklassen (modulecode, klasid) VALUES ('"
-                                                    + modulecode + "', " + rs.getInt("klasid") + ");";
+                                                    + MODULECODE + "', " + rs.getInt("klasid") + ");";
                                             System.out.println(insertModuleKlasQuery);
                                             db.stmt.executeUpdate(insertModuleKlasQuery);
 

@@ -8,12 +8,8 @@ package opdrachtdrie;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 /**
  *
@@ -26,7 +22,7 @@ public class OpdrachtVierTweeTwee {
 
     public OpdrachtVierTweeTwee() {
         // aantal iteraties per gebruiker
-        final int max = 600;
+        final int MAX = 600;
 
         // maak aantal threads (gebruikers) aan
         for (int t = 0; t < 2; t++) {
@@ -36,7 +32,7 @@ public class OpdrachtVierTweeTwee {
                     Database db = null;
 
                     // loop door elke iteratie heen
-                    for (int i = 0; i < 600; i++) {
+                    for (int i = 0; i < MAX; i++) {
                         try {
                             // maak een connectie met de database
                             db = new Database();
@@ -76,7 +72,11 @@ public class OpdrachtVierTweeTwee {
                             person.next();
 
                             // haal alle modules op die deze student volgt/gevolgd heeft.
-                            String selectModules = "SELECT m.naam FROM modules AS m LEFT JOIN modulesklassen AS mk ON m.modulecode = mk.modulecode LEFT JOIN klassen AS k ON mk.klasid = k.klasid LEFT JOIN studentenklassen AS sk ON k.klasid = sk.klasid WHERE sk.studentnummer = '" + person.getString("studentnummer") + "';";
+                            String selectModules = "SELECT m.naam FROM modules AS m " +
+                                    "LEFT JOIN modulesklassen AS mk ON m.modulecode = mk.modulecode " +
+                                    "LEFT JOIN klassen AS k ON mk.klasid = k.klasid " +
+                                    "LEFT JOIN studentenklassen AS sk ON k.klasid = sk.klasid " +
+                                    "WHERE sk.studentnummer = '" + person.getString("studentnummer") + "';";
                             ResultSet modules = db.stmt.executeQuery(selectModules);
 
                             // haal de naam van elke module op en schrijf deze naar de console
